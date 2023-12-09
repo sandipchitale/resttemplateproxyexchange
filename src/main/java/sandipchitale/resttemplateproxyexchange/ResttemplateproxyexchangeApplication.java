@@ -1,6 +1,5 @@
 package sandipchitale.resttemplateproxyexchange;
 
-import jakarta.servlet.Servlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.SpringApplication;
@@ -23,6 +22,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponents;
 
 import java.io.OutputStream;
+import java.net.URI;
 import java.util.List;
 
 @SpringBootApplication
@@ -40,7 +40,7 @@ public class ResttemplateproxyexchangeApplication {
 			this.restTemplateBuilder = restTemplateBuilder;
 		}
 
-		@RequestMapping()
+		@RequestMapping("/**")
 		ResponseEntity<StreamingResponseBody> proxy(HttpServletRequest httpServletRequest,
 													@RequestHeader HttpHeaders httpHeaders,
 													HttpServletResponse httpServletResponse) {
@@ -56,18 +56,31 @@ public class ResttemplateproxyexchangeApplication {
 				// Create a custom ResponseExtractor
 				ResponseExtractor<Void> responseExtractor = (ClientHttpResponse clientHttpResponse) -> {
 					HttpHeaders headers = clientHttpResponse.getHeaders();
-					headers.forEach((String n, List<String> vl) -> {
-						vl.forEach((v) -> {
-							httpServletResponse.addHeader(n, v);
+					headers.forEach((String name, List<String> valueList) -> {
+						valueList.forEach((String value) -> {
+							httpServletResponse.addHeader(name, value);
 						});
 					});
 					StreamUtils.copy(clientHttpResponse.getBody(), outputStream);
 					return null;
 				};
 
-				UriComponents uriComponents = ServletUriComponentsBuilder
-						.fromRequest(httpServletRequest)
-						.build(true).encode();
+				ServletUriComponentsBuilder servletUriComponentsBuilder = ServletUriComponentsBuilder.fromRequest(httpServletRequest);
+				String requestURI = httpServletRequest.getRequestURI();
+				if (requestURI.startsWith("/postman-echo")) {
+					requestURI = requestURI.substring("/postman-echo".length());
+				}
+				requestURI += "/" + httpServletRequest.getMethod().toLowerCase();
+				if (requestURI.startsWith("//")) {
+					requestURI = requestURI.substring(1);
+				}
+				servletUriComponentsBuilder.replacePath(requestURI);
+
+				UriComponents uriComponents = servletUriComponentsBuilder
+						.build(true)
+						.encode();
+
+				URI uri = uriComponents.toUri();
 
 				String query = uriComponents.getQuery();
 				if (query == null) {
@@ -76,7 +89,8 @@ public class ResttemplateproxyexchangeApplication {
 					query = "?" + query;
 				}
 
-				getRestTemplate(httpServletRequest).execute("https://postman-echo.com/" + httpServletRequest.getMethod().toLowerCase() + query,
+				String url = "https://postman-echo.com" + uri.getPath() + query;
+						getRestTemplate(httpServletRequest).execute(url,
 						HttpMethod.valueOf(httpServletRequest.getMethod()),
 						requestCallback,
 						responseExtractor);
