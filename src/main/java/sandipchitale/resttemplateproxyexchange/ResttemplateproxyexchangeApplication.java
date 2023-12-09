@@ -49,6 +49,7 @@ public class ResttemplateproxyexchangeApplication {
 				RequestCallback requestCallback = (ClientHttpRequest clientHttpRequest) -> {
 					HttpHeaders headers = clientHttpRequest.getHeaders();
 					headers.addAll(httpHeaders);
+					headers.remove(X_TIMEOUT_MILLIS);
 					StreamUtils.copy(httpServletRequest.getInputStream(), clientHttpRequest.getBody());
 				};
 
