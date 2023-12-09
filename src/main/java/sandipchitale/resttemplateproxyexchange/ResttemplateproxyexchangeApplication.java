@@ -45,11 +45,19 @@ public class ResttemplateproxyexchangeApplication {
 													@RequestHeader HttpHeaders httpHeaders,
 													HttpServletResponse httpServletResponse) {
 
+			String contextPath = httpServletRequest.getContextPath();
+
+			HttpHeaders httpHeadersToSend = new HttpHeaders();
+			httpHeadersToSend.addAll(httpHeaders);
+			httpHeadersToSend.remove(X_TIMEOUT_MILLIS);
+			if (!contextPath.isEmpty()) {
+				httpHeadersToSend.add("X-Forwarded-Prefix", contextPath);
+			}
+
 			StreamingResponseBody responseBody = (OutputStream outputStream) -> {
 				RequestCallback requestCallback = (ClientHttpRequest clientHttpRequest) -> {
 					HttpHeaders headers = clientHttpRequest.getHeaders();
-					headers.addAll(httpHeaders);
-					headers.remove(X_TIMEOUT_MILLIS);
+					headers.addAll(httpHeadersToSend);
 					StreamUtils.copy(httpServletRequest.getInputStream(), clientHttpRequest.getBody());
 				};
 
@@ -66,7 +74,12 @@ public class ResttemplateproxyexchangeApplication {
 				};
 
 				ServletUriComponentsBuilder servletUriComponentsBuilder = ServletUriComponentsBuilder.fromRequest(httpServletRequest);
+
 				String requestURI = httpServletRequest.getRequestURI();
+
+				if (!contextPath.isEmpty()) {
+					requestURI = requestURI.substring(contextPath.length());
+				}
 				if (requestURI.startsWith("/postman-echo")) {
 					requestURI = requestURI.substring("/postman-echo".length());
 				}
