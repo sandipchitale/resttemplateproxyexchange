@@ -2,11 +2,15 @@
 
 A generic streaming proxy using Spring RestTemplate.
 
-## Hot to try this?
+## How to try this
 
 - Set the header X-METHOD to the method to proxy (GET, POST, PUT, DELETE, etc)
 - Send the request with proxy url and arguments as path and query params and post body
   - The proxy request url may contain a pattern `{method}` that will be replaced by the value of the header X-METHOD.
+
+### Timeout
+
+Optionally, specify `X-TIMEOUT-MILLIS` header to set the Read timeout in milliseconds. If the request times out within those many milliseconds, `HttpSatus.GATEWAY_TIMEOUT` (504) status is returned.
 
 ## Examples
 
