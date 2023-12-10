@@ -103,10 +103,11 @@ public class ResttemplateproxyexchangeApplication {
 				}
 
 				String url = "https://postman-echo.com" + uri.getPath() + query;
-						getRestTemplate(httpServletRequest).execute(url,
-						HttpMethod.valueOf(httpServletRequest.getMethod()),
-						requestCallback,
-						responseExtractor);
+
+				getRestTemplate(httpServletRequest).execute(url,
+					HttpMethod.valueOf(httpServletRequest.getMethod()),
+					requestCallback,
+					responseExtractor);
 			};
 
 			return ResponseEntity.ok(responseBody);
