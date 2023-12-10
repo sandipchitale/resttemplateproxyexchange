@@ -5,15 +5,15 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.util.StreamUtils;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestTemplate;
@@ -24,6 +24,7 @@ import org.springframework.web.util.UriComponents;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @SpringBootApplication
 public class ResttemplateproxyexchangeApplication {
@@ -31,6 +32,7 @@ public class ResttemplateproxyexchangeApplication {
 	@RestController
 	public static class RestTemplateProxyExchange {
 		private static final String X_TIMEOUT_MILLIS = "X-TIMEOUT-MILLIS";
+		private static final String X_METHOD = "X-METHOD";
 
 		private final RestTemplate restTemplate;
 		private final RestTemplateBuilder restTemplateBuilder;
@@ -42,14 +44,22 @@ public class ResttemplateproxyexchangeApplication {
 
 		@RequestMapping("/**")
 		ResponseEntity<StreamingResponseBody> proxy(HttpServletRequest httpServletRequest,
+													@RequestHeader(X_METHOD) String method,
 													@RequestHeader HttpHeaders httpHeaders,
 													HttpServletResponse httpServletResponse) {
 
 			String contextPath = httpServletRequest.getContextPath();
+			HttpMethod httpMethod;
+			try {
+				httpMethod = HttpMethod.valueOf(method.toUpperCase());
+			} catch (IllegalArgumentException e) {
+				throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Invalid method: " + method);
+			}
 
 			HttpHeaders httpHeadersToSend = new HttpHeaders();
 			httpHeadersToSend.addAll(httpHeaders);
 			httpHeadersToSend.remove(X_TIMEOUT_MILLIS);
+			httpHeadersToSend.remove(X_METHOD);
 			if (!contextPath.isEmpty()) {
 				httpHeadersToSend.add("X-Forwarded-Prefix", contextPath);
 			}
@@ -73,41 +83,32 @@ public class ResttemplateproxyexchangeApplication {
 					return null;
 				};
 
-				ServletUriComponentsBuilder servletUriComponentsBuilder = ServletUriComponentsBuilder.fromRequest(httpServletRequest);
 
 				String requestURI = httpServletRequest.getRequestURI();
-
 				if (!contextPath.isEmpty()) {
 					requestURI = requestURI.substring(contextPath.length());
 				}
-				if (requestURI.startsWith("/postman-echo")) {
-					requestURI = requestURI.substring("/postman-echo".length());
-				}
-				requestURI += "/" + httpServletRequest.getMethod().toLowerCase();
-				if (requestURI.startsWith("//")) {
+
+				if (requestURI.startsWith("/")) {
 					requestURI = requestURI.substring(1);
 				}
-				servletUriComponentsBuilder.replacePath(requestURI);
 
-				UriComponents uriComponents = servletUriComponentsBuilder
-						.build(true)
-						.encode();
+				requestURI = requestURI.replaceAll(Pattern.quote("%7Bmethod%7D"), method);
 
-				URI uri = uriComponents.toUri();
-
-				String query = uriComponents.getQuery();
+				String query = httpServletRequest.getQueryString();
 				if (query == null) {
 					query = "";
 				} else {
 					query = "?" + query;
 				}
 
-				String url = "https://postman-echo.com" + uri.getPath() + query;
+				String url = requestURI + query;
 
-				getRestTemplate(httpServletRequest).execute(url,
-					HttpMethod.valueOf(httpServletRequest.getMethod()),
-					requestCallback,
-					responseExtractor);
+				getRestTemplate(httpServletRequest)
+					.execute(url,
+							httpMethod,
+							requestCallback,
+							responseExtractor);
 			};
 
 			return ResponseEntity.ok(responseBody);
