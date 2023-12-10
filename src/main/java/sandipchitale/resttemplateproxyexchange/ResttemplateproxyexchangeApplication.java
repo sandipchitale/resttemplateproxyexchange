@@ -48,23 +48,35 @@ public class ResttemplateproxyexchangeApplication {
 													@RequestHeader HttpHeaders httpHeaders,
 													HttpServletResponse httpServletResponse) {
 
-			String contextPath = httpServletRequest.getContextPath();
-			HttpMethod httpMethod;
-			try {
-				httpMethod = HttpMethod.valueOf(method.toUpperCase());
-			} catch (IllegalArgumentException e) {
+			if (method == null) {
+				throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Missing header: " + X_METHOD);
+			}
+
+			HttpMethod httpMethod = HttpMethod.valueOf(method.toUpperCase());
+			if (httpMethod == HttpMethod.GET ||
+					httpMethod == HttpMethod.HEAD ||
+					httpMethod == HttpMethod.POST ||
+					httpMethod == HttpMethod.PUT ||
+					httpMethod == HttpMethod.PATCH ||
+					httpMethod == HttpMethod.DELETE ||
+					httpMethod == HttpMethod.OPTIONS
+			) {
+				// OK
+			} else {
 				throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Invalid method: " + method);
 			}
 
-			HttpHeaders httpHeadersToSend = new HttpHeaders();
-			httpHeadersToSend.addAll(httpHeaders);
-			httpHeadersToSend.remove(X_TIMEOUT_MILLIS);
-			httpHeadersToSend.remove(X_METHOD);
-			if (!contextPath.isEmpty()) {
-				httpHeadersToSend.add("X-Forwarded-Prefix", contextPath);
-			}
-
 			StreamingResponseBody responseBody = (OutputStream outputStream) -> {
+				String contextPath = httpServletRequest.getContextPath();
+
+				HttpHeaders httpHeadersToSend = new HttpHeaders();
+				httpHeadersToSend.addAll(httpHeaders);
+				httpHeadersToSend.remove(X_TIMEOUT_MILLIS);
+				httpHeadersToSend.remove(X_METHOD);
+				if (!contextPath.isEmpty()) {
+					httpHeadersToSend.add("X-Forwarded-Prefix", contextPath);
+				}
+
 				RequestCallback requestCallback = (ClientHttpRequest clientHttpRequest) -> {
 					HttpHeaders headers = clientHttpRequest.getHeaders();
 					headers.addAll(httpHeadersToSend);
