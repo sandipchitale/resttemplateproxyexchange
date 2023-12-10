@@ -9,10 +9,7 @@ import org.springframework.http.*;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.util.StreamUtils;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.ResponseExtractor;
@@ -22,7 +19,9 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponents;
 
 import java.io.OutputStream;
+import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.time.Duration;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -129,10 +128,16 @@ public class ResttemplateproxyexchangeApplication {
 		private RestTemplate getRestTemplate(HttpServletRequest httpServletRequest) {
 			String xTimeoutMillis = httpServletRequest.getHeader(X_TIMEOUT_MILLIS);
 			if (xTimeoutMillis != null) {
+				long timeoutMillis = Long.parseLong(xTimeoutMillis);
 				// Cache and return
-				return restTemplateBuilder.build();
+				return restTemplateBuilder.setReadTimeout(Duration.ofMillis(timeoutMillis)).build();
 			}
 			return restTemplate;
+		}
+
+		@ExceptionHandler
+		ResponseEntity<String> handleException(SocketTimeoutException socketTimeoutException) {
+			return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body(HttpStatus.GATEWAY_TIMEOUT.getReasonPhrase());
 		}
 	}
 
