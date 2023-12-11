@@ -5,22 +5,25 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.util.StreamUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.springframework.web.util.UriComponents;
 
 import java.io.OutputStream;
 import java.net.SocketTimeoutException;
-import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -43,27 +46,34 @@ public class ResttemplateproxyexchangeApplication {
 
 		@RequestMapping("/**")
 		ResponseEntity<StreamingResponseBody> proxy(HttpServletRequest httpServletRequest,
-													@RequestHeader(X_METHOD) String method,
+													@RequestHeader(value = X_METHOD, required = false) String method,
 													@RequestHeader HttpHeaders httpHeaders,
 													HttpServletResponse httpServletResponse) {
 
+			HttpMethod nonFinalHttpMethod = null;
 			if (method == null) {
-				throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Missing header: " + X_METHOD);
+				method = httpServletRequest.getMethod();
 			}
 
-			HttpMethod httpMethod = HttpMethod.valueOf(method.toUpperCase());
-			if (httpMethod == HttpMethod.GET ||
-					httpMethod == HttpMethod.HEAD ||
-					httpMethod == HttpMethod.POST ||
-					httpMethod == HttpMethod.PUT ||
-					httpMethod == HttpMethod.PATCH ||
-					httpMethod == HttpMethod.DELETE ||
-					httpMethod == HttpMethod.OPTIONS
-			) {
-				// OK
-			} else {
-				throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Invalid method: " + method);
+			final String finalMethod = method;
+
+			if (method != null) {
+				nonFinalHttpMethod = HttpMethod.valueOf(finalMethod.toUpperCase());
+				if (nonFinalHttpMethod == HttpMethod.GET ||
+						nonFinalHttpMethod == HttpMethod.HEAD ||
+						nonFinalHttpMethod == HttpMethod.POST ||
+						nonFinalHttpMethod == HttpMethod.PUT ||
+						nonFinalHttpMethod == HttpMethod.PATCH ||
+						nonFinalHttpMethod == HttpMethod.DELETE ||
+						nonFinalHttpMethod == HttpMethod.OPTIONS
+				) {
+					// OK
+				} else {
+					throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Invalid method value: " + finalMethod + " in " + X_METHOD + " header.");
+				}
 			}
+
+			HttpMethod httpMethod = nonFinalHttpMethod;
 
 			StreamingResponseBody responseBody = (OutputStream outputStream) -> {
 				String contextPath = httpServletRequest.getContextPath();
@@ -104,7 +114,7 @@ public class ResttemplateproxyexchangeApplication {
 					requestURI = requestURI.substring(1);
 				}
 
-				requestURI = requestURI.replaceAll(Pattern.quote("%7Bmethod%7D"), method);
+				requestURI = requestURI.replaceAll(Pattern.quote("%7Bmethod%7D"), finalMethod	);
 
 				String query = httpServletRequest.getQueryString();
 				if (query == null) {
