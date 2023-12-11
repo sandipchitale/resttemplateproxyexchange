@@ -57,20 +57,18 @@ public class ResttemplateproxyexchangeApplication {
 
 			final String finalMethod = method;
 
-			if (method != null) {
-				nonFinalHttpMethod = HttpMethod.valueOf(finalMethod.toUpperCase());
-				if (nonFinalHttpMethod == HttpMethod.GET ||
-						nonFinalHttpMethod == HttpMethod.HEAD ||
-						nonFinalHttpMethod == HttpMethod.POST ||
-						nonFinalHttpMethod == HttpMethod.PUT ||
-						nonFinalHttpMethod == HttpMethod.PATCH ||
-						nonFinalHttpMethod == HttpMethod.DELETE ||
-						nonFinalHttpMethod == HttpMethod.OPTIONS
-				) {
-					// OK
-				} else {
-					throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Invalid method value: " + finalMethod + " in " + X_METHOD + " header.");
-				}
+			nonFinalHttpMethod = HttpMethod.valueOf(finalMethod.toUpperCase());
+			if (nonFinalHttpMethod == HttpMethod.GET ||
+					nonFinalHttpMethod == HttpMethod.HEAD ||
+					nonFinalHttpMethod == HttpMethod.POST ||
+					nonFinalHttpMethod == HttpMethod.PUT ||
+					nonFinalHttpMethod == HttpMethod.PATCH ||
+					nonFinalHttpMethod == HttpMethod.DELETE ||
+					nonFinalHttpMethod == HttpMethod.OPTIONS
+			) {
+				// OK
+			} else {
+				throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Invalid method value: " + finalMethod + " in " + X_METHOD + " header.");
 			}
 
 			HttpMethod httpMethod = nonFinalHttpMethod;
