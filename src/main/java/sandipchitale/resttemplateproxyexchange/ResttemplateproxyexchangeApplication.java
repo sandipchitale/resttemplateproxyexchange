@@ -26,6 +26,7 @@ import java.io.OutputStream;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 @SpringBootApplication
@@ -42,10 +43,18 @@ public class ResttemplateproxyexchangeApplication {
 
 		private final RestTemplate restTemplate;
 		private final RestTemplateBuilder restTemplateBuilder;
+		private final Set<HttpMethod> httpMethods;
 
 		RestTemplateProxyExchange(RestTemplateBuilder restTemplateBuilder) {
 			restTemplate = restTemplateBuilder.build();
 			this.restTemplateBuilder = restTemplateBuilder;
+			httpMethods = Set.of(HttpMethod.GET,
+					HttpMethod.HEAD,
+					HttpMethod.POST,
+					HttpMethod.PUT,
+					HttpMethod.PATCH,
+					HttpMethod.DELETE,
+					HttpMethod.OPTIONS);
 		}
 
 		@RequestMapping("/**")
@@ -62,16 +71,7 @@ public class ResttemplateproxyexchangeApplication {
 			final String finalMethod = method;
 
 			nonFinalHttpMethod = HttpMethod.valueOf(finalMethod.toUpperCase());
-			if (nonFinalHttpMethod == HttpMethod.GET ||
-					nonFinalHttpMethod == HttpMethod.HEAD ||
-					nonFinalHttpMethod == HttpMethod.POST ||
-					nonFinalHttpMethod == HttpMethod.PUT ||
-					nonFinalHttpMethod == HttpMethod.PATCH ||
-					nonFinalHttpMethod == HttpMethod.DELETE ||
-					nonFinalHttpMethod == HttpMethod.OPTIONS
-			) {
-				// OK
-			} else {
+			if (!httpMethods.contains(nonFinalHttpMethod)) {
 				throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Invalid method value: " + finalMethod + " in " + X_METHOD + " header.");
 			}
 
