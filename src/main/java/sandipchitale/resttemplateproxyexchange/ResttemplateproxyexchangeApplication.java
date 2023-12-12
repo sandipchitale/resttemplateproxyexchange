@@ -31,6 +31,10 @@ import java.util.regex.Pattern;
 @SpringBootApplication
 public class ResttemplateproxyexchangeApplication {
 
+	public static void main(String[] args) {
+		SpringApplication.run(ResttemplateproxyexchangeApplication.class, args);
+	}
+
 	@RestController
 	public static class RestTemplateProxyExchange {
 		private static final String X_TIMEOUT_MILLIS = "X-TIMEOUT-MILLIS";
@@ -147,9 +151,5 @@ public class ResttemplateproxyexchangeApplication {
 		ResponseEntity<String> handleException(SocketTimeoutException socketTimeoutException) {
 			return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body(HttpStatus.GATEWAY_TIMEOUT.getReasonPhrase());
 		}
-	}
-
-	public static void main(String[] args) {
-		SpringApplication.run(ResttemplateproxyexchangeApplication.class, args);
 	}
 }
