@@ -7,7 +7,8 @@ A generic streaming proxy using Spring RestTemplate.
 - Set the header X-METHOD to the method to proxy (GET, POST, PUT, DELETE, etc)
   - If the header is not set, method of `HttpServletRequest` is used.
 - Send the request with proxy url and arguments as path and query params and post body
-  - The proxy request url may contain a pattern `{method}` that will be replaced by the value of the header X-METHOD.
+  - The proxy request url may contain a pattern `{method}` that will be replaced by the lowercase value of the final HttpMethod.
+  - The proxy request url may contain a pattern `{METHOD}` that will be replaced by the uppercase value of the final HttpMethod.
 
 ### Timeout
 

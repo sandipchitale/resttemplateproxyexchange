@@ -116,7 +116,8 @@ public class ResttemplateproxyexchangeApplication {
 					requestURI = requestURI.substring(1);
 				}
 
-				requestURI = requestURI.replaceAll(Pattern.quote("%7Bmethod%7D"), finalMethod	);
+				requestURI = requestURI.replaceAll(Pattern.quote("%7Bmethod%7D"), finalMethod.toLowerCase());
+				requestURI = requestURI.replaceAll(Pattern.quote("%7BMETHOD%7D"), finalMethod.toUpperCase());
 
 				String query = httpServletRequest.getQueryString();
 				if (query == null) {
