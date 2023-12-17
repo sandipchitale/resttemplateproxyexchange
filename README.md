@@ -10,9 +10,12 @@ A generic streaming proxy using Spring RestTemplate.
   - The proxy request url may contain a pattern `{method}` that will be replaced by the lowercase value of the final HttpMethod.
   - The proxy request url may contain a pattern `{METHOD}` that will be replaced by the uppercase value of the final HttpMethod.
 
+## Optional features
+
 ### Timeout
 
-Optionally, specify `X-TIMEOUT-MILLIS` header to set the Read timeout in milliseconds. If the request times out within those many milliseconds, `HttpSatus.GATEWAY_TIMEOUT` (504) status is returned.
+`X-CONNECT-TIMEOUT-MILLIS` header - set the connect timeout in milliseconds. A value of 0 means infinite connect timeout. On connect timeout, a `504 Gateway Timeout: Connect timed out` response is returned.
+`X-READ-TIMEOUT-MILLIS` header - set the read timeout in milliseconds. A value of 0 means infinite read timeout. On connect timeout, a `504 Gateway Timeout: Read timed out` response is returned.
 
 ## Examples
 

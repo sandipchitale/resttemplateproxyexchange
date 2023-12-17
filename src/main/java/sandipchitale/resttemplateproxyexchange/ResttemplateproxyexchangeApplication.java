@@ -16,10 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RequestCallback;
-import org.springframework.web.client.ResponseExtractor;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.OutputStream;
@@ -38,7 +35,9 @@ public class ResttemplateproxyexchangeApplication {
 
 	@RestController
 	public static class RestTemplateProxyExchange {
-		private static final String X_TIMEOUT_MILLIS = "X-TIMEOUT-MILLIS";
+		private static final String X_CONNECT_TIMEOUT_MILLIS = "X-CONNECT-TIMEOUT-MILLIS";
+		private static final String X_READ_TIMEOUT_MILLIS = "X-READ-TIMEOUT-MILLIS";
+
 		private static final String X_METHOD = "X-METHOD";
 
 		private final RestTemplate restTemplate;
@@ -82,7 +81,8 @@ public class ResttemplateproxyexchangeApplication {
 
 				HttpHeaders httpHeadersToSend = new HttpHeaders();
 				httpHeadersToSend.addAll(httpHeaders);
-				httpHeadersToSend.remove(X_TIMEOUT_MILLIS);
+				httpHeadersToSend.remove(X_CONNECT_TIMEOUT_MILLIS);
+				httpHeadersToSend.remove(X_READ_TIMEOUT_MILLIS);
 				httpHeadersToSend.remove(X_METHOD);
 				if (!contextPath.isEmpty()) {
 					httpHeadersToSend.add("X-Forwarded-Prefix", contextPath);
@@ -139,18 +139,40 @@ public class ResttemplateproxyexchangeApplication {
 		}
 
 		private RestTemplate getRestTemplate(HttpServletRequest httpServletRequest) {
-			String xTimeoutMillis = httpServletRequest.getHeader(X_TIMEOUT_MILLIS);
-			if (xTimeoutMillis != null) {
-				long timeoutMillis = Long.parseLong(xTimeoutMillis);
-				// Cache and return
-				return restTemplateBuilder.setReadTimeout(Duration.ofMillis(timeoutMillis)).build();
+			String connectTimeoutMillisString = httpServletRequest.getHeader(X_CONNECT_TIMEOUT_MILLIS);
+			String readTimeoutMillisString = httpServletRequest.getHeader(X_READ_TIMEOUT_MILLIS);
+			if (connectTimeoutMillisString == null && readTimeoutMillisString == null) {
+				// Return default one
+				return restTemplate;
+			} else {
+				Duration connectionTimeout = connectTimeoutMillisString == null ? null : Duration.ofMillis(Long.parseLong(connectTimeoutMillisString));
+				Duration readTimeout = readTimeoutMillisString == null ? null : Duration.ofMillis(Long.parseLong(readTimeoutMillisString));
+
+				RestTemplateBuilder restTemplateBuilder = new RestTemplateBuilder();
+				if (connectionTimeout != null) {
+					if (connectionTimeout.equals(Duration.ZERO)) {
+						// 0 indicates infinite connect	 timeout
+						restTemplateBuilder = restTemplateBuilder.setConnectTimeout(Duration.ofMillis(Long.MAX_VALUE));
+					} else {
+						restTemplateBuilder = restTemplateBuilder.setConnectTimeout(connectionTimeout);
+					}
+				}
+				if (readTimeout != null) {
+					if (readTimeout.equals(Duration.ZERO)) {
+						// 0 indicates infinite read timeout
+						restTemplateBuilder = restTemplateBuilder.setReadTimeout(Duration.ofMillis(Long.MAX_VALUE));
+					} else {
+						restTemplateBuilder = restTemplateBuilder.setReadTimeout(readTimeout);
+					}
+				}
+
+				return restTemplateBuilder.build();
 			}
-			return restTemplate;
 		}
 
 		@ExceptionHandler
 		ResponseEntity<String> handleException(SocketTimeoutException socketTimeoutException) {
-			return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body(HttpStatus.GATEWAY_TIMEOUT.getReasonPhrase());
+			return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body(HttpStatus.GATEWAY_TIMEOUT.getReasonPhrase() + ": " + socketTimeoutException.getMessage());
 		}
 	}
 }
