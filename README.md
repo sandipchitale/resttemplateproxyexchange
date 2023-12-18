@@ -14,8 +14,8 @@ A generic streaming proxy using Spring RestTemplate.
 
 ### Timeout
 
-`X-CONNECT-TIMEOUT-MILLIS` header - set the connect timeout in milliseconds. A value of 0 means infinite connect timeout. On connect timeout, a `504 Gateway Timeout: Connect timed out` response is returned.
-`X-READ-TIMEOUT-MILLIS` header - set the read timeout in milliseconds. A value of 0 means infinite read timeout. On connect timeout, a `504 Gateway Timeout: Read timed out` response is returned.
+- `X-CONNECT-TIMEOUT-MILLIS` header - set the connect timeout in milliseconds. A value of 0 means infinite connect timeout. On connect timeout, a `504 Gateway Timeout: Connect timed out` response is returned.
+- `X-READ-TIMEOUT-MILLIS` header - set the read timeout in milliseconds. A value of 0 means infinite read timeout. On connect timeout, a `504 Gateway Timeout: Read timed out` response is returned.
 
 ## Examples
 
