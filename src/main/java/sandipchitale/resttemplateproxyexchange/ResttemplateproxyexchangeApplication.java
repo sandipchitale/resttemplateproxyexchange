@@ -62,19 +62,18 @@ public class ResttemplateproxyexchangeApplication {
 													@RequestHeader HttpHeaders httpHeaders,
 													HttpServletResponse httpServletResponse) {
 
-			HttpMethod nonFinalHttpMethod = null;
 			if (method == null) {
 				method = httpServletRequest.getMethod();
 			}
 
-			final String finalMethod = method;
+			final String finalMethodString = method;
 
-			nonFinalHttpMethod = HttpMethod.valueOf(finalMethod.toUpperCase());
+			HttpMethod nonFinalHttpMethod = HttpMethod.valueOf(finalMethodString.toUpperCase());
 			if (!httpMethods.contains(nonFinalHttpMethod)) {
-				throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Invalid method value: " + finalMethod + " in " + X_METHOD + " header.");
+				throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Invalid method value: " + finalMethodString + " in " + X_METHOD + " header.");
 			}
 
-			HttpMethod httpMethod = nonFinalHttpMethod;
+			final HttpMethod httpMethod = nonFinalHttpMethod;
 
 			StreamingResponseBody responseBody = (OutputStream outputStream) -> {
 				String contextPath = httpServletRequest.getContextPath();
@@ -116,8 +115,8 @@ public class ResttemplateproxyexchangeApplication {
 					requestURI = requestURI.substring(1);
 				}
 
-				requestURI = requestURI.replaceAll(Pattern.quote("%7Bmethod%7D"), finalMethod.toLowerCase());
-				requestURI = requestURI.replaceAll(Pattern.quote("%7BMETHOD%7D"), finalMethod.toUpperCase());
+				requestURI = requestURI.replaceAll(Pattern.quote("%7Bmethod%7D"), finalMethodString.toLowerCase());
+				requestURI = requestURI.replaceAll(Pattern.quote("%7BMETHOD%7D"), finalMethodString.toUpperCase());
 
 				String query = httpServletRequest.getQueryString();
 				if (query == null) {
@@ -148,25 +147,25 @@ public class ResttemplateproxyexchangeApplication {
 				Duration connectionTimeout = connectTimeoutMillisString == null ? null : Duration.ofMillis(Long.parseLong(connectTimeoutMillisString));
 				Duration readTimeout = readTimeoutMillisString == null ? null : Duration.ofMillis(Long.parseLong(readTimeoutMillisString));
 
-				RestTemplateBuilder restTemplateBuilder = new RestTemplateBuilder();
+				RestTemplateBuilder localRestTemplateBuilder = this.restTemplateBuilder;
 				if (connectionTimeout != null) {
 					if (connectionTimeout.equals(Duration.ZERO)) {
 						// 0 indicates infinite connect	 timeout
-						restTemplateBuilder = restTemplateBuilder.setConnectTimeout(Duration.ofMillis(Long.MAX_VALUE));
+						localRestTemplateBuilder = localRestTemplateBuilder.setConnectTimeout(Duration.ofMillis(Long.MAX_VALUE));
 					} else {
-						restTemplateBuilder = restTemplateBuilder.setConnectTimeout(connectionTimeout);
+						localRestTemplateBuilder = localRestTemplateBuilder.setConnectTimeout(connectionTimeout);
 					}
 				}
 				if (readTimeout != null) {
 					if (readTimeout.equals(Duration.ZERO)) {
 						// 0 indicates infinite read timeout
-						restTemplateBuilder = restTemplateBuilder.setReadTimeout(Duration.ofMillis(Long.MAX_VALUE));
+						localRestTemplateBuilder = localRestTemplateBuilder.setReadTimeout(Duration.ofMillis(Long.MAX_VALUE));
 					} else {
-						restTemplateBuilder = restTemplateBuilder.setReadTimeout(readTimeout);
+						localRestTemplateBuilder = localRestTemplateBuilder.setReadTimeout(readTimeout);
 					}
 				}
 
-				return restTemplateBuilder.build();
+				return localRestTemplateBuilder.build();
 			}
 		}
 
