@@ -95,12 +95,16 @@ public class ResttemplateproxyexchangeApplication {
 
 				// Create a custom ResponseExtractor
 				ResponseExtractor<Void> responseExtractor = (ClientHttpResponse clientHttpResponse) -> {
+					// Copy status code
+					httpServletResponse.setStatus(clientHttpResponse.getStatusCode().value());
+					// Copy headers
 					HttpHeaders headers = clientHttpResponse.getHeaders();
 					headers.forEach((String name, List<String> valueList) -> {
 						valueList.forEach((String value) -> {
 							httpServletResponse.addHeader(name, value);
 						});
 					});
+					// Copy body by streaming.
 					StreamUtils.copy(clientHttpResponse.getBody(), outputStream);
 					return null;
 				};
@@ -127,11 +131,12 @@ public class ResttemplateproxyexchangeApplication {
 
 				String url = requestURI + query;
 
+
 				getRestTemplate(httpServletRequest)
-					.execute(url,
-							httpMethod,
-							requestCallback,
-							responseExtractor);
+						.execute(url,
+								httpMethod,
+								requestCallback,
+								responseExtractor);
 			};
 
 			return ResponseEntity.ok(responseBody);
@@ -172,6 +177,11 @@ public class ResttemplateproxyexchangeApplication {
 		@ExceptionHandler
 		ResponseEntity<String> handleException(SocketTimeoutException socketTimeoutException) {
 			return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body(HttpStatus.GATEWAY_TIMEOUT.getReasonPhrase() + ": " + socketTimeoutException.getMessage());
+		}
+
+		@ExceptionHandler
+		ResponseEntity<String> handleException(HttpClientErrorException httpClientErrorException) {
+			return ResponseEntity.status(httpClientErrorException.getStatusCode()).body(httpClientErrorException.getMessage());
 		}
 	}
 }
