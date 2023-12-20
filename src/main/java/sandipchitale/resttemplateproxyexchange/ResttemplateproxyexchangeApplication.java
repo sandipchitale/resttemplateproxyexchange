@@ -131,7 +131,6 @@ public class ResttemplateproxyexchangeApplication {
 
 				String url = requestURI + query;
 
-
 				getRestTemplate(httpServletRequest)
 						.execute(url,
 								httpMethod,
