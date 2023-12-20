@@ -173,14 +173,19 @@ public class ResttemplateproxyexchangeApplication {
 			}
 		}
 
-		@ExceptionHandler
+		@ExceptionHandler(SocketTimeoutException.class)
 		ResponseEntity<String> handleException(SocketTimeoutException socketTimeoutException) {
 			return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body(HttpStatus.GATEWAY_TIMEOUT.getReasonPhrase() + ": " + socketTimeoutException.getMessage());
 		}
 
-		@ExceptionHandler
+		@ExceptionHandler(HttpClientErrorException.class)
 		ResponseEntity<String> handleException(HttpClientErrorException httpClientErrorException) {
 			return ResponseEntity.status(httpClientErrorException.getStatusCode()).body(httpClientErrorException.getMessage());
+		}
+
+		@ExceptionHandler(HttpServerErrorException.class)
+		ResponseEntity<String> handleException(HttpServerErrorException httpServerErrorException) {
+			return ResponseEntity.status(httpServerErrorException.getStatusCode()).body(httpServerErrorException.getMessage());
 		}
 	}
 }
